@@ -1,5 +1,90 @@
 import { useArticles } from '../hooks';
 import { useAppContext } from '../context/AppContext';
+import { useState } from 'react';
+
+
+function ApiTest() {
+  const [url, setUrl] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState(null);
+  const [error, setError] = useState(null);
+
+  const handleTest = async () => {
+    if (!url) return;
+    
+    setLoading(true);
+    setError(null);
+    setResult(null);
+
+    try {
+      const response = await fetch('/api/extract-metadata', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url }),
+      });
+      
+      const data = await response.json();
+      
+      if (data.success) {
+        setResult(data.data);
+      } else {
+        setError(data.error);
+      }
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="flex gap-2">
+        <input
+          type="url"
+          value={url}
+          onChange={(e) => setUrl(e.target.value)}
+          placeholder="Paste a URL to test..."
+          className="flex-1 px-3 py-2 border border-ink-300 rounded-lg font-sans text-sm"
+        />
+        <button
+          onClick={handleTest}
+          disabled={loading || !url}
+          className="px-4 py-2 bg-amber-600 text-white rounded-lg font-sans text-sm hover:bg-amber-700 disabled:opacity-50"
+        >
+          {loading ? 'Extracting...' : 'Test API'}
+        </button>
+      </div>
+      
+      {error && (
+        <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 font-sans text-sm">
+          {error}
+        </div>
+      )}
+      
+      {result && (
+        <div className="p-4 bg-ink-50 rounded-lg space-y-2 font-sans text-sm">
+          <p><strong>Title:</strong> {result.title}</p>
+          <p><strong>Publication:</strong> {result.publication}</p>
+          <p><strong>Summary:</strong> {result.summary || '(none)'}</p>
+          <p><strong>Reading Time:</strong> {result.readingTime} min</p>
+          <p><strong>Tags:</strong> {result.suggestedTags.join(', ')}</p>
+          {result.imageUrl && (
+            <div>
+              <strong>Image:</strong>
+              <img 
+                src={result.imageUrl} 
+                alt="Preview" 
+                className="mt-2 max-w-xs rounded border"
+                onError={(e) => e.target.style.display = 'none'}
+              />
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
 
 export default function HomePage() {
   const { state } = useAppContext();
@@ -24,7 +109,7 @@ export default function HomePage() {
 
   return (
     <div className="p-6">
-      {/* Temporary: Add article form will go here */}
+      {/* API Test Component */}
       <div className="mb-6 p-4 bg-white rounded-lg shadow-card border border-ink-100">
         <p className="text-ink-500 font-sans text-sm">
           Article input coming in Phase 6

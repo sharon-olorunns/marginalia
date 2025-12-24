@@ -1,0 +1,1 @@
+export { extractMetadata, isValidUrl, getDomain } from './metadataService';
