@@ -1,12 +1,14 @@
 import { useMemo } from 'react';
 import { useArticles } from '../hooks';
 import { useAppContext } from '../context/AppContext';
+import { useToast } from '../components/ui';
 import { AddArticleInput, ArticleGrid, EmptyState } from '../components/articles';
 import { FilterBar } from '../components/filters';
 
 export default function HomePage() {
   const { state } = useAppContext();
   const { filters } = state;
+  const toast = useToast();
   
   // Determine if viewing Favorites
   const isViewingFavorites = filters.activeListId === 'favorites';
@@ -42,7 +44,28 @@ export default function HomePage() {
         : 'Failed to save article'
       );
     }
+    toast.success('Article saved to your library');
     return result;
+  };
+
+  // Handle toggle read with toast
+  const handleToggleRead = async (id) => {
+    const article = articles.find(a => a.id === id);
+    await toggleRead(id);
+    toast.info(article?.isRead ? 'Marked as unread' : 'Marked as read');
+  };
+
+  // Handle toggle star with toast
+  const handleToggleStar = async (id) => {
+    const article = articles.find(a => a.id === id);
+    await toggleStar(id);
+    toast.info(article?.isStarred ? 'Removed from favorites' : 'Added to favorites');
+  };
+
+  // Handle delete with toast
+  const handleDelete = async (id) => {
+    await deleteArticle(id);
+    toast.success('Article deleted');
   };
 
   // Determine empty state type
@@ -102,9 +125,9 @@ export default function HomePage() {
           <ArticleGrid 
             articles={articles}
             isLoading={false}
-            onToggleRead={toggleRead}
-            onToggleStar={toggleStar}
-            onDelete={deleteArticle}
+            onToggleRead={handleToggleRead}
+            onToggleStar={handleToggleStar}
+            onDelete={handleDelete}
           />
         </>
       )}

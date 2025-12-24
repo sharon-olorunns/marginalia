@@ -121,6 +121,13 @@ export default function Header() {
           </button>
         )}
       </div>
+      
+      {/* Keyboard shortcut hint - shows on larger screens */}
+      <div className="hidden lg:flex items-center text-xs text-ink-400 font-sans">
+        <kbd className="px-1.5 py-0.5 bg-ink-100 rounded text-ink-500 font-mono">/</kbd>
+        <span className="ml-1">to search</span>
+      </div>
+
     </header>
   );
 }

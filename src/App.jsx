@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { initializeDefaults } from './db';
 import { AppProvider, useAppContext } from './context/AppContext';
 import { Layout } from './components/layout';
+import { ToastProvider } from './components/ui';
 import { useLists } from './hooks';
 import { CreateListModal, EditListModal } from './components/lists';
 import HomePage from './pages/HomePage';
@@ -19,17 +20,22 @@ function App() {
     return (
       <div className="min-h-screen bg-cream-50 flex items-center justify-center">
         <div className="text-center">
+          <div className="w-16 h-16 rounded-full bg-amber-100 flex items-center justify-center mx-auto mb-4">
+            <span className="font-serif text-2xl text-amber-700">M</span>
+          </div>
           <h1 className="font-serif text-2xl text-ink-900 mb-2">Marginalia</h1>
-          <p className="font-sans text-ink-500">Loading...</p>
+          <p className="font-sans text-sm text-ink-500">Loading your library...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <AppProvider>
-      <AppContent />
-    </AppProvider>
+    <ToastProvider>
+      <AppProvider>
+        <AppContent />
+      </AppProvider>
+    </ToastProvider>
   );
 }
 

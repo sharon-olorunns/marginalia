@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { Check, Plus } from 'lucide-react';
+import { useState } from 'react';
+import { Check, Plus, X } from 'lucide-react';
 import { useLists, useArticleLists } from '../../hooks';
 
 export default function ListSelector({ articleId, onClose }) {
@@ -17,7 +17,6 @@ export default function ListSelector({ articleId, onClose }) {
     
     try {
       const newListId = await createList(newListName.trim());
-      // Automatically add article to the new list
       await toggleListMembership(articleId, newListId);
       setNewListName('');
       setIsCreating(false);
@@ -33,6 +32,11 @@ export default function ListSelector({ articleId, onClose }) {
       setIsCreating(false);
       setNewListName('');
     }
+  };
+
+  const handleCancel = () => {
+    setIsCreating(false);
+    setNewListName('');
   };
 
   return (
@@ -59,7 +63,7 @@ export default function ListSelector({ articleId, onClose }) {
                 className="w-full flex items-center gap-2 px-3 py-2 font-sans text-sm text-ink-700 hover:bg-ink-50 transition-colors"
               >
                 <span className={`
-                  w-4 h-4 rounded border flex items-center justify-center
+                  w-4 h-4 rounded border flex-shrink-0 flex items-center justify-center
                   ${isInList 
                     ? 'bg-amber-600 border-amber-600 text-white' 
                     : 'border-ink-300'
@@ -68,7 +72,7 @@ export default function ListSelector({ articleId, onClose }) {
                   {isInList && <Check size={12} />}
                 </span>
                 <span className="flex-1 text-left truncate">{list.name}</span>
-                <span className="text-ink-400 text-xs">{list.articleCount}</span>
+                <span className="text-ink-400 text-xs flex-shrink-0">{list.articleCount}</span>
               </button>
             );
           })
@@ -78,7 +82,7 @@ export default function ListSelector({ articleId, onClose }) {
       {/* Create new list */}
       <div className="border-t border-ink-100 p-2">
         {isCreating ? (
-          <div className="flex gap-1">
+          <div className="space-y-2">
             <input
               type="text"
               value={newListName}
@@ -86,16 +90,24 @@ export default function ListSelector({ articleId, onClose }) {
               onKeyDown={handleKeyDown}
               placeholder="List name..."
               autoFocus
-              className="flex-1 px-2 py-1.5 text-sm font-sans border border-ink-300 rounded focus:outline-none focus:ring-1 focus:ring-amber-500"
+              className="w-full px-2 py-1.5 text-sm font-sans border border-ink-300 rounded focus:outline-none focus:ring-1 focus:ring-amber-500"
               maxLength={50}
             />
-            <button
-              onClick={handleCreateList}
-              disabled={!newListName.trim()}
-              className="px-2 py-1.5 bg-amber-600 text-white rounded text-sm hover:bg-amber-700 disabled:opacity-50 transition-colors"
-            >
-              Add
-            </button>
+            <div className="flex gap-2">
+              <button
+                onClick={handleCancel}
+                className="flex-1 px-2 py-1.5 border border-ink-300 text-ink-600 rounded text-sm hover:bg-ink-50 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleCreateList}
+                disabled={!newListName.trim()}
+                className="flex-1 px-2 py-1.5 bg-amber-600 text-white rounded text-sm hover:bg-amber-700 disabled:opacity-50 transition-colors"
+              >
+                Add
+              </button>
+            </div>
           </div>
         ) : (
           <button

@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { Trash2 } from 'lucide-react';
-import { Modal, Button, Input } from '../ui';
+import { Modal, Button, Input, useToast } from '../ui';
 
 export default function EditListModal({ 
   isOpen, 
@@ -14,6 +14,7 @@ export default function EditListModal({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const inputRef = useRef(null);
+  const toast = useToast();
 
   // Initialize name when modal opens or list changes
   useEffect(() => {
@@ -30,7 +31,6 @@ export default function EditListModal({
     
     const trimmedName = name.trim();
     
-    // Validation
     if (!trimmedName) {
       setError('Please enter a list name');
       return;
@@ -41,7 +41,6 @@ export default function EditListModal({
       return;
     }
 
-    // If name hasn't changed, just close
     if (trimmedName === list.name) {
       onClose();
       return;
@@ -52,6 +51,7 @@ export default function EditListModal({
 
     try {
       await onRenameList(list.id, trimmedName);
+      toast.success('List renamed');
       onClose();
     } catch (err) {
       setError(err.message || 'Failed to rename list');
@@ -64,7 +64,9 @@ export default function EditListModal({
     setIsSubmitting(true);
     
     try {
+      const listName = list.name;
       await onDeleteList(list.id);
+      toast.success(`List "${listName}" deleted`);
       onClose();
     } catch (err) {
       setError(err.message || 'Failed to delete list');

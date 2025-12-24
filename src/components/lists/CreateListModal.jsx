@@ -1,18 +1,18 @@
 import { useState, useEffect, useRef } from 'react';
-import { Modal, Button, Input } from '../ui';
+import { Modal, Button, Input, useToast } from '../ui';
 
 export default function CreateListModal({ isOpen, onClose, onCreateList }) {
   const [name, setName] = useState('');
   const [error, setError] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const inputRef = useRef(null);
+  const toast = useToast();
 
   // Focus input when modal opens
   useEffect(() => {
     if (isOpen) {
       setName('');
       setError(null);
-      // Small delay to ensure modal is rendered
       setTimeout(() => inputRef.current?.focus(), 100);
     }
   }, [isOpen]);
@@ -22,7 +22,6 @@ export default function CreateListModal({ isOpen, onClose, onCreateList }) {
     
     const trimmedName = name.trim();
     
-    // Validation
     if (!trimmedName) {
       setError('Please enter a list name');
       return;
@@ -38,6 +37,7 @@ export default function CreateListModal({ isOpen, onClose, onCreateList }) {
 
     try {
       await onCreateList(trimmedName);
+      toast.success(`List "${trimmedName}" created`);
       onClose();
     } catch (err) {
       setError(err.message || 'Failed to create list');
