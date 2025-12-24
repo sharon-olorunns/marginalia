@@ -1,28 +1,23 @@
-import { BookOpen, Star, Plus, ChevronRight, Menu } from 'lucide-react';
+import { BookOpen, Star, Plus, ChevronRight, MoreHorizontal } from 'lucide-react';
 import { useLists } from '../../hooks';
 import { useAppContext } from '../../context/AppContext';
 
 export default function Sidebar() {
-  const { lists, defaultLists, customLists } = useLists();
+  const { lists, customLists } = useLists();
   const { 
     state, 
     setActiveList, 
     openCreateListModal,
+    setEditingList,
     toggleSidebar 
   } = useAppContext();
   
   const { activeListId } = state.filters;
   const { sidebarOpen } = state.ui;
 
-  // Find the "All Articles" list for the null case
-  const allArticlesList = defaultLists.find(l => l.name === 'All Articles');
-  const favoritesList = defaultLists.find(l => l.name === 'Favorites');
-
-  // Helper to check if a list is active
-  const isActive = (listId) => {
-    if (listId === null && activeListId === null) return true;
-    return listId === activeListId;
-  };
+  // Calculate counts
+  const allArticlesCount = lists.find(l => l.name === 'All Articles')?.articleCount ?? 0;
+  const favoritesCount = lists.find(l => l.name === 'Favorites')?.articleCount ?? 0;
 
   return (
     <>
@@ -58,7 +53,7 @@ export default function Sidebar() {
             className={`
               w-full flex items-center gap-3 px-3 py-2 rounded-lg
               font-sans text-sm transition-colors
-              ${isActive(null) 
+              ${activeListId === null 
                 ? 'bg-cream-100 text-ink-900' 
                 : 'text-ink-700 hover:bg-ink-50'
               }
@@ -67,17 +62,17 @@ export default function Sidebar() {
             <BookOpen size={18} className="text-ink-500" />
             <span className="flex-1 text-left">All Articles</span>
             <span className="text-ink-400 text-xs">
-              {allArticlesList?.articleCount ?? 0}
+              {allArticlesCount}
             </span>
           </button>
           
           {/* Favorites */}
           <button
-            onClick={() => setActiveList(favoritesList?.id ?? null)}
+            onClick={() => setActiveList('favorites')}
             className={`
               w-full flex items-center gap-3 px-3 py-2 rounded-lg
               font-sans text-sm transition-colors
-              ${isActive(favoritesList?.id) 
+              ${activeListId === 'favorites'
                 ? 'bg-cream-100 text-ink-900' 
                 : 'text-ink-700 hover:bg-ink-50'
               }
@@ -86,7 +81,7 @@ export default function Sidebar() {
             <Star size={18} className="text-amber-600" />
             <span className="flex-1 text-left">Favorites</span>
             <span className="text-ink-400 text-xs">
-              {favoritesList?.articleCount ?? 0}
+              {favoritesCount}
             </span>
           </button>
         </nav>
@@ -116,31 +111,46 @@ export default function Sidebar() {
             </p>
           ) : (
             customLists.map(list => (
-              <button
+              <div 
                 key={list.id}
-                onClick={() => setActiveList(list.id)}
-                className={`
-                  w-full flex items-center gap-3 px-3 py-2 rounded-lg
-                  font-sans text-sm transition-colors group
-                  ${isActive(list.id) 
-                    ? 'bg-cream-100 text-ink-900' 
-                    : 'text-ink-700 hover:bg-ink-50'
-                  }
-                `}
+                className="group relative"
               >
-                <ChevronRight 
-                  size={16} 
-                  className={`text-ink-400 transition-transform ${
-                    list.isCurrentlyReading ? 'text-amber-600' : ''
-                  }`} 
-                />
-                <span className="flex-1 text-left truncate">
-                  {list.name}
-                </span>
-                <span className="text-ink-400 text-xs">
-                  {list.articleCount}
-                </span>
-              </button>
+                <button
+                  onClick={() => setActiveList(list.id)}
+                  className={`
+                    w-full flex items-center gap-3 px-3 py-2 rounded-lg
+                    font-sans text-sm transition-colors
+                    ${activeListId === list.id 
+                      ? 'bg-cream-100 text-ink-900' 
+                      : 'text-ink-700 hover:bg-ink-50'
+                    }
+                  `}
+                >
+                  <ChevronRight 
+                    size={16} 
+                    className={`text-ink-400 ${
+                      list.isCurrentlyReading ? 'text-amber-600' : ''
+                    }`} 
+                  />
+                  <span className="flex-1 text-left truncate">
+                    {list.name}
+                  </span>
+                  <span className="text-ink-400 text-xs group-hover:opacity-0 transition-opacity">
+                    {list.articleCount}
+                  </span>
+                </button>
+                
+                {/* Edit button - shows on hover */}
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setEditingList(list.id);
+                  }}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded hover:bg-ink-200 text-ink-400 hover:text-ink-600 opacity-0 group-hover:opacity-100 transition-opacity"
+                >
+                  <MoreHorizontal size={14} />
+                </button>
+              </div>
             ))
           )}
         </nav>

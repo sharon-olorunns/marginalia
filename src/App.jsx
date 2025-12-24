@@ -1,24 +1,18 @@
 import { useEffect, useState } from 'react';
 import { initializeDefaults } from './db';
-import { AppProvider } from './context/AppContext';
+import { AppProvider, useAppContext } from './context/AppContext';
 import { Layout } from './components/layout';
+import { useLists } from './hooks';
+import { CreateListModal, EditListModal } from './components/lists';
 import HomePage from './pages/HomePage';
-import ComponentsPage from './pages/ComponentsPage';
 
 function App() {
   const [dbReady, setDbReady] = useState(false);
-  const [showComponents, setShowComponents] = useState(false);
   
   useEffect(() => {
     initializeDefaults().then(() => {
       setDbReady(true);
     });
-  }, []);
-
-  // Check URL for ?components flag
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    setShowComponents(params.has('components'));
   }, []);
 
   if (!dbReady) {
@@ -32,17 +26,55 @@ function App() {
     );
   }
 
-  // Show components page if ?components is in URL
-  if (showComponents) {
-    return <ComponentsPage />;
-  }
-
   return (
     <AppProvider>
+      <AppContent />
+    </AppProvider>
+  );
+}
+
+// Separate component to use context hooks
+function AppContent() {
+  const { 
+    state, 
+    closeCreateListModal, 
+    setEditingList 
+  } = useAppContext();
+  
+  const { 
+    lists,
+    createList, 
+    renameList, 
+    deleteList 
+  } = useLists();
+
+  // Find the list being edited
+  const editingList = state.ui.editingListId 
+    ? lists.find(l => l.id === state.ui.editingListId) 
+    : null;
+
+  return (
+    <>
       <Layout>
         <HomePage />
       </Layout>
-    </AppProvider>
+      
+      {/* Create List Modal */}
+      <CreateListModal
+        isOpen={state.ui.createListModalOpen}
+        onClose={closeCreateListModal}
+        onCreateList={createList}
+      />
+      
+      {/* Edit List Modal */}
+      <EditListModal
+        isOpen={!!state.ui.editingListId}
+        onClose={() => setEditingList(null)}
+        list={editingList}
+        onRenameList={renameList}
+        onDeleteList={deleteList}
+      />
+    </>
   );
 }
 

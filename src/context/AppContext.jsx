@@ -61,20 +61,20 @@ function appReducer(state, action) {
         filters: { ...state.filters, selectedTags: action.payload }
       };
     
-    case actions.SET_ACTIVE_LIST:
-      return {
-        ...state,
-        filters: { 
-          ...state.filters, 
-          activeListId: action.payload,
-          // Clear other filters when switching lists
-          searchQuery: '',
-          readStatus: 'all',
-          starredOnly: false,
-          selectedTags: []
-        }
-      };
-    
+      case actions.SET_ACTIVE_LIST:
+        return {
+          ...state,
+          filters: { 
+            ...state.filters, 
+            activeListId: action.payload,
+            // Clear other filters when switching lists
+            searchQuery: '',
+            readStatus: 'all',
+            starredOnly: action.payload === 'favorites',
+            selectedTags: []
+          }
+        };
+          
     case actions.TOGGLE_SIDEBAR:
       return {
         ...state,
@@ -108,7 +108,11 @@ function appReducer(state, action) {
     case actions.CLEAR_FILTERS:
       return {
         ...state,
-        filters: { ...initialState.filters, activeListId: state.filters.activeListId }
+        filters: {
+          ...initialState.filters,
+          activeListId: state.filters.activeListId,
+          starredOnly: state.filters.activeListId === 'favorites'
+        }
       };
     
     default:

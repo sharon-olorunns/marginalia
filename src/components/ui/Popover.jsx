@@ -1,4 +1,5 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useLayoutEffect } from 'react';
+import { createPortal } from 'react-dom';
 
 export default function Popover({ 
   trigger, 
@@ -8,8 +9,55 @@ export default function Popover({
   className = '' 
 }) {
   const [isOpen, setIsOpen] = useState(false);
+  const [position, setPosition] = useState({ top: 0, left: 0 });
   const popoverRef = useRef(null);
   const triggerRef = useRef(null);
+
+  // Calculate position when opening
+  useLayoutEffect(() => {
+    if (isOpen && triggerRef.current && popoverRef.current) {
+      const triggerRect = triggerRef.current.getBoundingClientRect();
+      const popoverRect = popoverRef.current.getBoundingClientRect();
+      const viewportWidth = window.innerWidth;
+      const viewportHeight = window.innerHeight;
+
+      let top, left;
+
+      // Calculate vertical position
+      if (side === 'bottom') {
+        top = triggerRect.bottom + 8;
+        // If popover would go below viewport, flip to top
+        if (top + popoverRect.height > viewportHeight - 16) {
+          top = triggerRect.top - popoverRect.height - 8;
+        }
+      } else {
+        top = triggerRect.top - popoverRect.height - 8;
+        // If popover would go above viewport, flip to bottom
+        if (top < 16) {
+          top = triggerRect.bottom + 8;
+        }
+      }
+
+      // Calculate horizontal position
+      if (align === 'start') {
+        left = triggerRect.left;
+      } else if (align === 'end') {
+        left = triggerRect.right - popoverRect.width;
+      } else {
+        left = triggerRect.left + (triggerRect.width / 2) - (popoverRect.width / 2);
+      }
+
+      // Keep within horizontal viewport bounds
+      if (left + popoverRect.width > viewportWidth - 16) {
+        left = viewportWidth - popoverRect.width - 16;
+      }
+      if (left < 16) {
+        left = 16;
+      }
+
+      setPosition({ top, left });
+    }
+  }, [isOpen, align, side]);
 
   // Close on outside click
   useEffect(() => {
@@ -24,10 +72,15 @@ export default function Popover({
     };
 
     if (isOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
+      // Delay to prevent immediate close from the same click
+      const timer = setTimeout(() => {
+        document.addEventListener('mousedown', handleClickOutside);
+      }, 10);
+      return () => {
+        clearTimeout(timer);
+        document.removeEventListener('mousedown', handleClickOutside);
+      };
     }
-
-    return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [isOpen]);
 
   // Close on escape
@@ -45,39 +98,46 @@ export default function Popover({
     return () => document.removeEventListener('keydown', handleEscape);
   }, [isOpen]);
 
-  // Alignment classes
-  const alignmentClasses = {
-    start: 'left-0',
-    center: 'left-1/2 -translate-x-1/2',
-    end: 'right-0',
-  };
+  // Close on scroll
+  useEffect(() => {
+    if (isOpen) {
+      const handleScroll = () => setIsOpen(false);
+      window.addEventListener('scroll', handleScroll, true);
+      return () => window.removeEventListener('scroll', handleScroll, true);
+    }
+  }, [isOpen]);
 
-  const sideClasses = {
-    top: 'bottom-full mb-2',
-    bottom: 'top-full mt-2',
+  const handleTriggerClick = (e) => {
+    e.stopPropagation();
+    e.preventDefault();
+    setIsOpen(!isOpen);
   };
 
   return (
-    <div className="relative inline-block">
+    <>
       {/* Trigger */}
       <div 
         ref={triggerRef}
-        onClick={() => setIsOpen(!isOpen)}
+        onClick={handleTriggerClick}
+        className="inline-block cursor-pointer"
       >
         {trigger}
       </div>
       
-      {/* Popover content */}
-      {isOpen && (
+      {/* Popover content - rendered via Portal */}
+      {isOpen && createPortal(
         <div
           ref={popoverRef}
+          onClick={(e) => e.stopPropagation()}
+          style={{
+            position: 'fixed',
+            top: `${position.top}px`,
+            left: `${position.left}px`,
+            zIndex: 99999,
+          }}
           className={`
-            absolute z-50
-            ${alignmentClasses[align]}
-            ${sideClasses[side]}
             min-w-[200px]
-            bg-white rounded-lg shadow-lg border border-ink-200
-            animate-in fade-in zoom-in-95 duration-150
+            bg-white rounded-lg shadow-xl border border-ink-200
             ${className}
           `}
         >
@@ -85,9 +145,10 @@ export default function Popover({
             ? children({ close: () => setIsOpen(false) }) 
             : children
           }
-        </div>
+        </div>,
+        document.body
       )}
-    </div>
+    </>
   );
 }
 

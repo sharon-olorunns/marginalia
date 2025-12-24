@@ -16,9 +16,12 @@ export function useArticles(filters = {}) {
     
     let results = await query.toArray();
     
-    // Apply filters in JavaScript (Dexie compound queries are limited)
+    // Filter by starred (for Favorites view)
+    if (starredOnly) {
+      results = results.filter(article => article.isStarred);
+    }
     
-    // Filter by list membership
+    // Filter by list membership (for custom lists)
     if (listId !== null) {
       const articleIds = await db.articleLists
         .where('listId')
@@ -33,7 +36,8 @@ export function useArticles(filters = {}) {
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase();
       results = results.filter(article => 
-        article.title.toLowerCase().includes(query)
+        article.title.toLowerCase().includes(query) ||
+        article.publication.toLowerCase().includes(query)
       );
     }
     
@@ -42,11 +46,6 @@ export function useArticles(filters = {}) {
       results = results.filter(article => article.isRead);
     } else if (readStatus === 'unread') {
       results = results.filter(article => !article.isRead);
-    }
-    
-    // Filter by starred
-    if (starredOnly) {
-      results = results.filter(article => article.isStarred);
     }
     
     // Filter by tags

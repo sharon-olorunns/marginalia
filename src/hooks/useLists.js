@@ -6,6 +6,10 @@ export function useLists() {
   const lists = useLiveQuery(async () => {
     const allLists = await db.lists.orderBy('createdAt').toArray();
     
+    // Get all articles once for counting
+    const allArticles = await db.articles.toArray();
+    const starredCount = allArticles.filter(a => a.isStarred).length;
+    
     // Get article counts for each list
     const listsWithCounts = await Promise.all(
       allLists.map(async (list) => {
@@ -13,10 +17,10 @@ export function useLists() {
         
         if (list.name === 'All Articles') {
           // Count all articles
-          count = await db.articles.count();
+          count = allArticles.length;
         } else if (list.name === 'Favorites') {
           // Count starred articles
-          count = await db.articles.where('isStarred').equals(1).count();
+          count = starredCount;
         } else {
           // Count articles in this specific list
           count = await db.articleLists
@@ -30,7 +34,7 @@ export function useLists() {
     );
     
     return listsWithCounts;
-  }, []);
+  }, []); // Empty dependency array - Dexie handles reactivity
 
   // Create a new list
   const createList = async (name) => {
@@ -64,10 +68,13 @@ export function useLists() {
   // Set a list as "Currently Reading"
   const setCurrentlyReading = async (id) => {
     // Clear any existing "currently reading" flag
-    await db.lists
-      .where('isCurrentlyReading')
-      .equals(1)
-      .modify({ isCurrentlyReading: false });
+    const currentlyReadingLists = await db.lists
+      .filter(list => list.isCurrentlyReading)
+      .toArray();
+    
+    for (const list of currentlyReadingLists) {
+      await db.lists.update(list.id, { isCurrentlyReading: false });
+    }
     
     // Set the new one (if id provided)
     if (id !== null) {
