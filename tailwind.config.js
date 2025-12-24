@@ -20,11 +20,14 @@ export default {
           900: '#1C1917',
           700: '#44403C',
           500: '#78716C',
+          400: '#A8A29E',
           300: '#D6D3D1',
           200: '#E7E5E4',
           100: '#F5F5F4',
+          50: '#FAFAF9',
         },
         amber: {
+          500: '#F59E0B',
           600: '#D97706',
           700: '#B45309',
         },
@@ -35,5 +38,22 @@ export default {
       },
     },
   },
-  plugins: [],
+  plugins: [
+    function({ addUtilities }) {
+      addUtilities({
+        '.line-clamp-2': {
+          display: '-webkit-box',
+          '-webkit-line-clamp': '2',
+          '-webkit-box-orient': 'vertical',
+          overflow: 'hidden',
+        },
+        '.line-clamp-3': {
+          display: '-webkit-box',
+          '-webkit-line-clamp': '3',
+          '-webkit-box-orient': 'vertical',
+          overflow: 'hidden',
+        },
+      })
+    }
+  ],
 }
