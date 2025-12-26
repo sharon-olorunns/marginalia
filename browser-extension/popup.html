@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Marginalia</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div id="app">
+    <!-- Loading State -->
+    <div id="loading" class="state">
+      <div class="spinner"></div>
+      <p>Loading...</p>
+    </div>
+
+    <!-- Not Signed In State -->
+    <div id="not-signed-in" class="state hidden">
+      <div class="icon-container">
+        <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/>
+          <circle cx="12" cy="7" r="4"/>
+        </svg>
+      </div>
+      <h2>Sign in to Marginalia</h2>
+      <p>Connect your account to save articles</p>
+      <button id="sign-in-btn" class="btn btn-primary">Sign In</button>
+      <a href="#" id="open-app-link" class="link">Open Marginalia</a>
+    </div>
+
+    <!-- Ready to Save State -->
+    <div id="ready" class="state hidden">
+      <div class="header">
+        <img id="favicon" src="" alt="" class="favicon">
+        <div class="header-text">
+          <h2 id="page-title">Page Title</h2>
+          <p id="page-url" class="url">https://example.com</p>
+        </div>
+      </div>
+      <button id="save-btn" class="btn btn-primary btn-large">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 5v14M5 12h14"/>
+        </svg>
+        Save to Marginalia
+      </button>
+      <div class="user-info">
+        <span id="user-email">user@example.com</span>
+        <button id="sign-out-btn" class="btn-link">Sign out</button>
+      </div>
+    </div>
+
+    <!-- Saving State -->
+    <div id="saving" class="state hidden">
+      <div class="spinner"></div>
+      <p>Saving article...</p>
+    </div>
+
+    <!-- Success State -->
+    <div id="success" class="state hidden">
+      <div class="icon-container success">
+        <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+          <polyline points="22 4 12 14.01 9 11.01"/>
+        </svg>
+      </div>
+      <h2>Saved!</h2>
+      <p>Article added to your library</p>
+      <a href="#" id="view-article-link" class="btn btn-secondary">View in Marginalia</a>
+    </div>
+
+    <!-- Error State -->
+    <div id="error" class="state hidden">
+      <div class="icon-container error">
+        <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10"/>
+          <line x1="12" y1="8" x2="12" y2="12"/>
+          <line x1="12" y1="16" x2="12.01" y2="16"/>
+        </svg>
+      </div>
+      <h2>Something went wrong</h2>
+      <p id="error-message">Failed to save article</p>
+      <button id="retry-btn" class="btn btn-primary">Try Again</button>
+    </div>
+
+    <!-- Already Saved State -->
+    <div id="already-saved" class="state hidden">
+      <div class="icon-container info">
+        <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+          <polyline points="22 4 12 14.01 9 11.01"/>
+        </svg>
+      </div>
+      <h2>Already Saved</h2>
+      <p>This article is in your library</p>
+      <a href="#" id="view-existing-link" class="btn btn-secondary">View in Marginalia</a>
+    </div>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>

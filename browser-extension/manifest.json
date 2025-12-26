@@ -1,0 +1,32 @@
+{
+    "manifest_version": 3,
+    "name": "Marginalia",
+    "description": "Save articles to your Marginalia reading list with one click",
+    "version": "1.0.0",
+    "action": {
+      "default_popup": "popup.html",
+      "default_title": "Save to Marginalia"
+    },
+    "background": {
+      "service_worker": "background.js"
+    },
+    "content_scripts": [
+      {
+        "matches": [
+          "http://localhost:5173/*",
+          "https://marginalia-reads.vercel.app/*"
+        ],
+        "js": ["content.js"],
+        "run_at": "document_idle"
+      }
+    ],
+    "permissions": [
+      "activeTab",
+      "storage",
+      "scripting"
+    ],
+    "host_permissions": [
+      "https://*.supabase.co/*",
+      "<all_urls>"
+    ]
+  }
