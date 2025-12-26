@@ -84,16 +84,20 @@ export async function downloadArticles(userId) {
 // Delete article from cloud
 export async function deleteCloudArticle(cloudId) {
     console.log('deleteCloudArticle called with cloudId:', cloudId);
+    console.log('isSyncAvailable:', isSyncAvailable());
 
     if (!isSyncAvailable() || !cloudId) {
-        console.log('deleteCloudArticle aborted - sync not available or no cloudId');
+        console.log('deleteCloudArticle aborted');
         return false;
     }
 
-    const { error } = await supabase
+    const { data, error } = await supabase
         .from('articles')
         .delete()
-        .eq('id', cloudId);
+        .eq('id', cloudId)
+        .select();
+
+    console.log('Delete response - data:', data, 'error:', error);
 
     if (error) {
         console.error('Error deleting cloud article:', error);
