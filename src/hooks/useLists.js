@@ -1,7 +1,12 @@
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../db';
+import { useSync } from '../context/SyncContext';
+import { useAuth } from '../context/AuthContext';
 
 export function useLists() {
+  const { isAuthenticated } = useAuth();
+  const { syncList, syncListDeletion } = useSync();
+
   // Fetch all lists with article counts
   const lists = useLiveQuery(async () => {
     const allLists = await db.lists.orderBy('createdAt').toArray();
@@ -16,13 +21,10 @@ export function useLists() {
         let count;
         
         if (list.name === 'All Articles') {
-          // Count all articles
           count = allArticles.length;
         } else if (list.name === 'Favorites') {
-          // Count starred articles
           count = starredCount;
         } else {
-          // Count articles in this specific list
           count = await db.articleLists
             .where('listId')
             .equals(list.id)
@@ -34,7 +36,7 @@ export function useLists() {
     );
     
     return listsWithCounts;
-  }, []); // Empty dependency array - Dexie handles reactivity
+  }, []);
 
   // Create a new list
   const createList = async (name) => {
@@ -42,14 +44,28 @@ export function useLists() {
       name,
       isDefault: false,
       isCurrentlyReading: false,
+      cloudId: null,
       createdAt: new Date()
     });
+    
+    // Sync to cloud if authenticated
+    if (isAuthenticated) {
+      const savedList = await db.lists.get(id);
+      syncList(savedList);
+    }
+    
     return id;
   };
 
   // Rename a list
   const renameList = async (id, newName) => {
     await db.lists.update(id, { name: newName });
+    
+    // Sync to cloud if authenticated
+    if (isAuthenticated) {
+      const updatedList = await db.lists.get(id);
+      syncList(updatedList);
+    }
   };
 
   // Delete a list (and its article associations)
@@ -59,10 +75,17 @@ export function useLists() {
       throw new Error('Cannot delete default lists');
     }
     
+    const cloudId = list?.cloudId;
+    
     // Remove all article associations
     await db.articleLists.where('listId').equals(id).delete();
     // Delete the list
     await db.lists.delete(id);
+    
+    // Sync deletion to cloud
+    if (isAuthenticated && cloudId) {
+      syncListDeletion(cloudId);
+    }
   };
 
   // Set a list as "Currently Reading"
@@ -74,11 +97,19 @@ export function useLists() {
     
     for (const list of currentlyReadingLists) {
       await db.lists.update(list.id, { isCurrentlyReading: false });
+      if (isAuthenticated) {
+        const updated = await db.lists.get(list.id);
+        syncList(updated);
+      }
     }
     
     // Set the new one (if id provided)
     if (id !== null) {
       await db.lists.update(id, { isCurrentlyReading: true });
+      if (isAuthenticated) {
+        const updated = await db.lists.get(id);
+        syncList(updated);
+      }
     }
   };
 

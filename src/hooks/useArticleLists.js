@@ -1,7 +1,12 @@
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../db';
+import { useSync } from '../context/SyncContext';
+import { useAuth } from '../context/AuthContext';
 
 export function useArticleLists(articleId = null) {
+  const { isAuthenticated } = useAuth();
+  const { syncArticleListAdd, syncArticleListRemove } = useSync();
+
   // Get list memberships for a specific article
   const articleListIds = useLiveQuery(async () => {
     if (articleId === null) return [];
@@ -24,6 +29,11 @@ export function useArticleLists(articleId = null) {
     
     if (!existing) {
       await db.articleLists.add({ articleId, listId });
+      
+      // Sync to cloud if authenticated
+      if (isAuthenticated) {
+        syncArticleListAdd(articleId, listId);
+      }
     }
   };
 
@@ -33,6 +43,11 @@ export function useArticleLists(articleId = null) {
       .where('[articleId+listId]')
       .equals([articleId, listId])
       .delete();
+    
+    // Sync to cloud if authenticated
+    if (isAuthenticated) {
+      syncArticleListRemove(articleId, listId);
+    }
   };
 
   // Toggle article membership in a list

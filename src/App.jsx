@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { initializeDefaults } from './db';
 import { AppProvider, useAppContext } from './context/AppContext';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { SyncProvider } from './context/SyncContext';
 import { Layout } from './components/layout';
 import { ToastProvider } from './components/ui';
 import { useLists } from './hooks';
@@ -35,9 +36,11 @@ function App() {
   return (
     <AuthProvider>
       <ToastProvider>
-        <AppProvider>
-          <AppContent />
-        </AppProvider>
+        <SyncProvider>
+          <AppProvider>
+            <AppContent />
+          </AppProvider>
+        </SyncProvider>
       </ToastProvider>
     </AuthProvider>
   );

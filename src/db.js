@@ -2,19 +2,26 @@ import Dexie from 'dexie';
 
 export const db = new Dexie('MarginalioDB');
 
-// Define database schema
+// Version 2: Add cloudId for sync
+db.version(2).stores({
+  articles: '++id, url, cloudId, createdAt, isRead, isStarred, *tags',
+  lists: '++id, name, cloudId, isDefault, isCurrentlyReading, createdAt',
+  articleLists: '++id, articleId, listId, [articleId+listId]'
+}).upgrade(tx => {
+  // Migration: add cloudId to existing records
+  return tx.table('articles').toCollection().modify(article => {
+    article.cloudId = article.cloudId || null;
+  }).then(() => {
+    return tx.table('lists').toCollection().modify(list => {
+      list.cloudId = list.cloudId || null;
+    });
+  });
+});
+
+// Keep version 1 for backwards compatibility
 db.version(1).stores({
-  // Articles table
-  // ++id = auto-increment primary key
-  // url is indexed for duplicate checking
-  // *tags = multi-entry index (array of tags)
   articles: '++id, url, createdAt, isRead, isStarred, *tags',
-  
-  // Lists table
   lists: '++id, name, isDefault, isCurrentlyReading, createdAt',
-  
-  // Junction table for many-to-many relationship
-  // [articleId+listId] = compound index for quick lookups
   articleLists: '++id, articleId, listId, [articleId+listId]'
 });
 
@@ -28,12 +35,14 @@ export async function initializeDefaults() {
         name: 'All Articles',
         isDefault: true,
         isCurrentlyReading: false,
+        cloudId: null,
         createdAt: new Date()
       },
       {
         name: 'Favorites',
         isDefault: true,
         isCurrentlyReading: false,
+        cloudId: null,
         createdAt: new Date()
       }
     ]);
