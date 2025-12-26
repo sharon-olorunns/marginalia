@@ -125,16 +125,16 @@ export function useArticles(filters = {}) {
   const deleteArticle = async (id) => {
     const article = await db.articles.get(id);
     const cloudId = article?.cloudId;
-    
-    // Remove from all lists first
-    await db.articleLists.where('articleId').equals(id).delete();
-    // Then delete the article
-    await db.articles.delete(id);
-    
-    // Sync deletion to cloud
+
+    // Sync deletion to cloud FIRST (before local delete)
     if (isAuthenticated && cloudId) {
-      syncArticleDeletion(cloudId);
+      await syncArticleDeletion(cloudId);
     }
+
+    // Remove from all lists
+    await db.articleLists.where('articleId').equals(id).delete();
+    // Then delete the article locally
+    await db.articles.delete(id);
   };
 
   // Get all unique tags

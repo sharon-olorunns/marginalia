@@ -108,23 +108,21 @@ useEffect(() => {
 
     // Sync article deletion
     const syncArticleDeletion = useCallback(async (cloudId) => {
-        console.log('syncArticleDeletion called with cloudId:', cloudId);
-        console.log('syncEnabled:', syncEnabled);
-
         if (!cloudId || !syncEnabled) {
-            console.log('syncArticleDeletion aborted - no cloudId or sync disabled');
-            return;
+            return false;
         }
 
         try {
             const result = await deleteCloudArticle(cloudId);
-            console.log('deleteCloudArticle result:', result);
+            return result;
         } catch (error) {
             console.error('Error syncing article deletion:', error);
+            return false;
         }
     }, [syncEnabled]);
 
-  // Sync a single list
+  
+    // Sync a single list
   const syncList = useCallback(async (list) => {
     if (!user?.id || !syncEnabled || list.isDefault) return;
     
