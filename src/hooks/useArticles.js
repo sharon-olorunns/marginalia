@@ -80,10 +80,19 @@ export function useArticles(filters = {}) {
 
   // Update an article
   const updateArticle = async (id, changes) => {
+    console.log('updateArticle called:', { id, changes });
+
     await db.articles.update(id, {
       ...changes,
       updatedAt: new Date()
     });
+
+    // Sync to cloud if authenticated
+    if (isAuthenticated) {
+      const updatedArticle = await db.articles.get(id);
+      console.log('Syncing article update to cloud:', { id, cloudId: updatedArticle?.cloudId, isStarred: updatedArticle?.isStarred });
+      syncArticle(updatedArticle);
+    }
   };
 
   // Toggle read status
@@ -104,10 +113,23 @@ export function useArticles(filters = {}) {
 
   // Delete an article
   const deleteArticle = async (id) => {
+    const article = await db.articles.get(id);
+    console.log('Deleting article:', { id, cloudId: article?.cloudId, url: article?.url });
+
+    const cloudId = article?.cloudId;
+
     // Remove from all lists first
     await db.articleLists.where('articleId').equals(id).delete();
     // Then delete the article
     await db.articles.delete(id);
+
+    // Sync deletion to cloud
+    if (isAuthenticated && cloudId) {
+      console.log('Syncing deletion to cloud for cloudId:', cloudId);
+      syncArticleDeletion(cloudId);
+    } else {
+      console.log('NOT syncing deletion - isAuthenticated:', isAuthenticated, 'cloudId:', cloudId);
+    }
   };
 
   // Get all unique tags

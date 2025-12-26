@@ -15,43 +15,53 @@ const generateUUID = () => {
 
 // Upload a single article to cloud
 export async function uploadArticle(article, userId) {
-  if (!isSyncAvailable() || !userId) return null;
+    console.log('uploadArticle called:', { articleId: article.id, cloudId: article.cloudId, isStarred: article.isStarred });
 
-  const cloudArticle = {
-    id: article.cloudId || generateUUID(),
-    user_id: userId,
-    url: article.url,
-    title: article.title,
-    publication: article.publication || '',
-    summary: article.summary || '',
-    image_url: article.imageUrl,
-    favicon_url: article.faviconUrl,
-    reading_time: article.readingTime || 5,
-    tags: article.tags || [],
-    is_read: article.isRead || false,
-    is_starred: article.isStarred || false,
-    created_at: article.createdAt?.toISOString() || new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-  };
+    if (!isSyncAvailable() || !userId) {
+        console.log('uploadArticle aborted - sync not available');
+        return null;
+    }
 
-  const { data, error } = await supabase
-    .from('articles')
-    .upsert(cloudArticle, { onConflict: 'user_id,url' })
-    .select()
-    .single();
+    const cloudArticle = {
+        id: article.cloudId || generateUUID(),
+        user_id: userId,
+        url: article.url,
+        title: article.title,
+        publication: article.publication || '',
+        summary: article.summary || '',
+        image_url: article.imageUrl,
+        favicon_url: article.faviconUrl,
+        reading_time: article.readingTime || 5,
+        tags: article.tags || [],
+        is_read: article.isRead || false,
+        is_starred: article.isStarred || false,
+        created_at: article.createdAt?.toISOString() || new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+    };
 
-  if (error) {
-    console.error('Error uploading article:', error);
-    return null;
-  }
+    console.log('Upserting to cloud:', { id: cloudArticle.id, is_starred: cloudArticle.is_starred });
 
-  // Update local article with cloud ID
-  if (data && article.id) {
-    await db.articles.update(article.id, { cloudId: data.id });
-  }
+    const { data, error } = await supabase
+        .from('articles')
+        .upsert(cloudArticle, { onConflict: 'id' })
+        .select()
+        .single();
 
-  return data;
+    if (error) {
+        console.error('Error uploading article:', error);
+        return null;
+    }
+
+    console.log('Successfully uploaded article:', data.id);
+
+    // Update local article with cloud ID
+    if (data && article.id) {
+        await db.articles.update(article.id, { cloudId: data.id });
+    }
+
+    return data;
 }
+
 
 // Download all articles from cloud
 export async function downloadArticles(userId) {
@@ -73,19 +83,25 @@ export async function downloadArticles(userId) {
 
 // Delete article from cloud
 export async function deleteCloudArticle(cloudId) {
-  if (!isSyncAvailable() || !cloudId) return false;
+    console.log('deleteCloudArticle called with cloudId:', cloudId);
 
-  const { error } = await supabase
-    .from('articles')
-    .delete()
-    .eq('id', cloudId);
+    if (!isSyncAvailable() || !cloudId) {
+        console.log('deleteCloudArticle aborted - sync not available or no cloudId');
+        return false;
+    }
 
-  if (error) {
-    console.error('Error deleting cloud article:', error);
-    return false;
-  }
+    const { error } = await supabase
+        .from('articles')
+        .delete()
+        .eq('id', cloudId);
 
-  return true;
+    if (error) {
+        console.error('Error deleting cloud article:', error);
+        return false;
+    }
+
+    console.log('Successfully deleted cloud article:', cloudId);
+    return true;
 }
 
 // ----- LISTS -----
