@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react';
 import { initializeDefaults } from './db';
 import { AppProvider, useAppContext } from './context/AppContext';
+import { AuthProvider, useAuth } from './context/AuthContext';
 import { Layout } from './components/layout';
 import { ToastProvider } from './components/ui';
 import { useLists } from './hooks';
 import { CreateListModal, EditListModal } from './components/lists';
+import { ResetPasswordModal } from './components/auth';
 import HomePage from './pages/HomePage';
 
 function App() {
@@ -31,11 +33,13 @@ function App() {
   }
 
   return (
-    <ToastProvider>
-      <AppProvider>
-        <AppContent />
-      </AppProvider>
-    </ToastProvider>
+    <AuthProvider>
+      <ToastProvider>
+        <AppProvider>
+          <AppContent />
+        </AppProvider>
+      </ToastProvider>
+    </AuthProvider>
   );
 }
 
@@ -46,6 +50,8 @@ function AppContent() {
     closeCreateListModal, 
     setEditingList 
   } = useAppContext();
+  
+  const { isRecoveryMode, clearRecoveryMode } = useAuth();
   
   const { 
     lists,
@@ -79,6 +85,12 @@ function AppContent() {
         list={editingList}
         onRenameList={renameList}
         onDeleteList={deleteList}
+      />
+
+      {/* Password Reset Modal */}
+      <ResetPasswordModal
+        isOpen={isRecoveryMode}
+        onClose={clearRecoveryMode}
       />
     </>
   );
