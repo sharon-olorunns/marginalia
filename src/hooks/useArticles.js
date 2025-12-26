@@ -1,14 +1,19 @@
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../db';
+import { useSync } from '../context/SyncContext';
+import { useAuth } from '../context/AuthContext';
 
 export function useArticles(filters = {}) {
   const {
     searchQuery = '',
-    readStatus = 'all',      // 'all' | 'read' | 'unread'
+    readStatus = 'all',
     starredOnly = false,
     selectedTags = [],
-    listId = null            // null = all articles
+    listId = null
   } = filters;
+
+  const { isAuthenticated } = useAuth();
+  const { syncArticle, syncArticleDeletion } = useSync();
 
   // Fetch articles with live updates
   const articles = useLiveQuery(async () => {
@@ -34,10 +39,10 @@ export function useArticles(filters = {}) {
     
     // Filter by search query (title)
     if (searchQuery.trim()) {
-      const query = searchQuery.toLowerCase();
+      const q = searchQuery.toLowerCase();
       results = results.filter(article => 
-        article.title.toLowerCase().includes(query) ||
-        article.publication.toLowerCase().includes(query)
+        article.title.toLowerCase().includes(q) ||
+        article.publication.toLowerCase().includes(q)
       );
     }
     
@@ -70,27 +75,32 @@ export function useArticles(filters = {}) {
       ...articleData,
       isRead: false,
       isStarred: false,
+      cloudId: null,
       createdAt: new Date(),
       updatedAt: new Date()
     };
     
     const id = await db.articles.add(article);
+    
+    // Sync to cloud if authenticated
+    if (isAuthenticated) {
+      const savedArticle = await db.articles.get(id);
+      syncArticle(savedArticle);
+    }
+    
     return { success: true, id };
   };
 
   // Update an article
   const updateArticle = async (id, changes) => {
-    console.log('updateArticle called:', { id, changes });
-
     await db.articles.update(id, {
       ...changes,
       updatedAt: new Date()
     });
-
+    
     // Sync to cloud if authenticated
     if (isAuthenticated) {
       const updatedArticle = await db.articles.get(id);
-      console.log('Syncing article update to cloud:', { id, cloudId: updatedArticle?.cloudId, isStarred: updatedArticle?.isStarred });
       syncArticle(updatedArticle);
     }
   };
@@ -114,21 +124,16 @@ export function useArticles(filters = {}) {
   // Delete an article
   const deleteArticle = async (id) => {
     const article = await db.articles.get(id);
-    console.log('Deleting article:', { id, cloudId: article?.cloudId, url: article?.url });
-
     const cloudId = article?.cloudId;
-
+    
     // Remove from all lists first
     await db.articleLists.where('articleId').equals(id).delete();
     // Then delete the article
     await db.articles.delete(id);
-
+    
     // Sync deletion to cloud
     if (isAuthenticated && cloudId) {
-      console.log('Syncing deletion to cloud for cloudId:', cloudId);
       syncArticleDeletion(cloudId);
-    } else {
-      console.log('NOT syncing deletion - isAuthenticated:', isAuthenticated, 'cloudId:', cloudId);
     }
   };
 
