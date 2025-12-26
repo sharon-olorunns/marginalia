@@ -1,7 +1,7 @@
 // Supabase configuration - you'll need to update these
 const SUPABASE_URL = 'https://qaumpwsztgdoabshlphf.supabase.co'; // e.g., https://xxxxx.supabase.co
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFhdW1wd3N6dGdkb2Fic2hscGhmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjY2OTIzNTIsImV4cCI6MjA4MjI2ODM1Mn0.Kff9GrL2Yn6oqZwcK1-3CTF4VirtHg8ei2MhQUNI25o';
-const APP_URL = 'http://localhost:5173'; // Update for production
+const APP_URL = 'https://marginalia-reads.vercel.app'; // Changed from localhost
 
 // State
 let currentUser = null;
@@ -229,60 +229,79 @@ function guessTagsFromUrl(url) {
 
 // Save article
 async function saveArticle() {
-  if (!currentTab || !currentUser || !currentSession) return;
+    if (!currentTab || !currentUser || !currentSession) return;
 
-  showState('saving');
+    showState('saving');
 
-  try {
-    // Extract metadata
-    const metadata = await extractMetadata(currentTab);
-    const readingTime = await estimateReadingTime(currentTab);
+    try {
+        // First, check if article already exists
+        const existsResponse = await fetch(
+            `${SUPABASE_URL}/rest/v1/articles?url=eq.${encodeURIComponent(currentTab.url)}&user_id=eq.${currentUser.id}&select=id`,
+            {
+                headers: {
+                    'apikey': SUPABASE_ANON_KEY,
+                    'Authorization': `Bearer ${currentSession.access_token}`,
+                },
+            }
+        );
 
-    // Prepare article data
-    const article = {
-      user_id: currentUser.id,
-      url: currentTab.url,
-      title: metadata.title,
-      publication: metadata.siteName,
-      summary: metadata.description.substring(0, 500),
-      image_url: metadata.image || null,
-      favicon_url: currentTab.favIconUrl || `https://www.google.com/s2/favicons?domain=${new URL(currentTab.url).hostname}&sz=64`,
-      reading_time: readingTime,
-      tags: guessTagsFromUrl(currentTab.url),
-      is_read: false,
-      is_starred: false,
-    };
+        if (existsResponse.ok) {
+            const existingArticles = await existsResponse.json();
+            if (existingArticles.length > 0) {
+                showState('alreadySaved');
+                return;
+            }
+        }
 
-    // Save to Supabase
-    const response = await fetch(`${SUPABASE_URL}/rest/v1/articles`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'apikey': SUPABASE_ANON_KEY,
-        'Authorization': `Bearer ${currentSession.access_token}`,
-        'Prefer': 'return=minimal',
-      },
-      body: JSON.stringify(article),
-    });
+        // Extract metadata
+        const metadata = await extractMetadata(currentTab);
+        const readingTime = await estimateReadingTime(currentTab);
 
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      
-      // Check for duplicate
-      if (response.status === 409 || errorData.code === '23505') {
-        showState('alreadySaved');
-        return;
-      }
-      
-      throw new Error(errorData.message || `Failed to save (${response.status})`);
+        // Prepare article data
+        const article = {
+            user_id: currentUser.id,
+            url: currentTab.url,
+            title: metadata.title,
+            publication: metadata.siteName,
+            summary: metadata.description.substring(0, 500),
+            image_url: metadata.image || null,
+            favicon_url: currentTab.favIconUrl || `https://www.google.com/s2/favicons?domain=${new URL(currentTab.url).hostname}&sz=64`,
+            reading_time: readingTime,
+            tags: guessTagsFromUrl(currentTab.url),
+            is_read: false,
+            is_starred: false,
+        };
+
+        // Save to Supabase
+        const response = await fetch(`${SUPABASE_URL}/rest/v1/articles`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'apikey': SUPABASE_ANON_KEY,
+                'Authorization': `Bearer ${currentSession.access_token}`,
+                'Prefer': 'return=minimal',
+            },
+            body: JSON.stringify(article),
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+
+            // Check for duplicate constraint violation
+            if (response.status === 409 || errorData.code === '23505') {
+                showState('alreadySaved');
+                return;
+            }
+
+            throw new Error(errorData.message || `Failed to save (${response.status})`);
+        }
+
+        showState('success');
+
+    } catch (err) {
+        console.error('Save error:', err);
+        showError(err.message || 'Failed to save article');
     }
-
-    showState('success');
-
-  } catch (err) {
-    console.error('Save error:', err);
-    showError(err.message || 'Failed to save article');
-  }
 }
 
 // Show error
