@@ -4,7 +4,7 @@ import { AppProvider, useAppContext } from './context/AppContext';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { SyncProvider } from './context/SyncContext';
 import { Layout } from './components/layout';
-import { ToastProvider } from './components/ui';
+import { ToastProvider, SyncIndicator } from './components/ui';
 import { useLists } from './hooks';
 import { CreateListModal, EditListModal } from './components/lists';
 import { ResetPasswordModal } from './components/auth';
@@ -95,6 +95,9 @@ function AppContent() {
         isOpen={isRecoveryMode}
         onClose={clearRecoveryMode}
       />
+
+      {/* Sync Indicator */}
+      <SyncIndicator />
     </>
   );
 }

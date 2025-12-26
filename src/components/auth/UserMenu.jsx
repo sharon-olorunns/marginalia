@@ -1,11 +1,11 @@
-import { User, LogOut, Cloud, CloudOff, RefreshCw } from 'lucide-react';
+import { LogOut, Cloud, CloudOff, RefreshCw, Wifi, WifiOff } from 'lucide-react';
 import { Popover } from '../ui';
 import { useAuth } from '../../context/AuthContext';
 import { useSync } from '../../context/SyncContext';
 
 export default function UserMenu({ onSignInClick }) {
   const { user, isAuthenticated, isConfigured, signOut } = useAuth();
-  const { isSyncing, lastSynced, handleFullSync } = useSync();
+  const { isSyncing, lastSynced, realtimeStatus, handleFullSync } = useSync();
 
   // Format last synced time
   const formatLastSynced = () => {
@@ -18,6 +18,23 @@ export default function UserMenu({ onSignInClick }) {
     if (diff < 86400000) return `${Math.floor(diff / 3600000)}h ago`;
     return lastSynced.toLocaleDateString();
   };
+
+  // Get realtime status display
+  const getRealtimeDisplay = () => {
+    switch (realtimeStatus) {
+      case 'connected':
+        return { icon: Wifi, text: 'Live sync active', color: 'text-green-600' };
+      case 'connecting':
+        return { icon: RefreshCw, text: 'Connecting...', color: 'text-amber-600' };
+      case 'error':
+        return { icon: WifiOff, text: 'Connection error', color: 'text-red-600' };
+      default:
+        return { icon: WifiOff, text: 'Offline', color: 'text-ink-400' };
+    }
+  };
+
+  const realtimeDisplay = getRealtimeDisplay();
+  const RealtimeIcon = realtimeDisplay.icon;
 
   // Not configured - show disabled state
   if (!isConfigured) {
@@ -53,28 +70,36 @@ export default function UserMenu({ onSignInClick }) {
           <span className="hidden sm:inline max-w-[120px] truncate">
             {user.email}
           </span>
-          {isSyncing && (
+          {isSyncing ? (
             <RefreshCw size={14} className="animate-spin text-ink-400" />
-          )}
+          ) : realtimeStatus === 'connected' ? (
+            <span className="w-2 h-2 rounded-full bg-green-500" title="Live sync active" />
+          ) : null}
         </button>
       }
       align="end"
     >
       {({ close }) => (
-        <div className="py-1 min-w-[220px]">
+        <div className="py-1 min-w-[240px]">
           <div className="px-3 py-2 border-b border-ink-100">
             <p className="font-sans text-xs text-ink-500">Signed in as</p>
             <p className="font-sans text-sm text-ink-900 truncate">{user.email}</p>
           </div>
           
-          <div className="px-3 py-2 border-b border-ink-100">
+          <div className="px-3 py-2 border-b border-ink-100 space-y-1">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2 text-green-600">
                 <Cloud size={16} />
-                <span className="font-sans text-sm">Sync enabled</span>
+                <span className="font-sans text-sm">Cloud sync enabled</span>
               </div>
             </div>
-            <p className="font-sans text-xs text-ink-400 mt-1">
+            
+            <div className={`flex items-center gap-2 ${realtimeDisplay.color}`}>
+              <RealtimeIcon size={14} className={realtimeStatus === 'connecting' ? 'animate-spin' : ''} />
+              <span className="font-sans text-xs">{realtimeDisplay.text}</span>
+            </div>
+            
+            <p className="font-sans text-xs text-ink-400">
               Last synced: {formatLastSynced()}
             </p>
           </div>

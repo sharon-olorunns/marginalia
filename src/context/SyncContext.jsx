@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useCallback, useEffect } from 'react';
+import { createContext, useContext, useState, useCallback, useEffect, useRef } from 'react';
 import { useAuth } from './AuthContext';
 import { useToast } from '../components/ui';
 import { 
@@ -11,6 +11,7 @@ import {
   deleteCloudList,
   deleteCloudArticleList,
 } from '../services/syncService';
+import { subscribeToChanges, isRealtimeAvailable } from '../services/realtimeService';
 import { db } from '../db';
 
 const SyncContext = createContext(null);
@@ -20,14 +21,11 @@ export function SyncProvider({ children }) {
   const toast = useToast();
   const [isSyncing, setIsSyncing] = useState(false);
   const [lastSynced, setLastSynced] = useState(null);
-  const [syncEnabled, setSyncEnabled] = useState(isSyncAvailable());
-
-  // Perform full sync when user signs in
-  useEffect(() => {
-    if (isAuthenticated && user?.id && syncEnabled) {
-      handleFullSync();
-    }
-  }, [isAuthenticated, user?.id, syncEnabled]);
+  const [syncEnabled] = useState(isSyncAvailable());
+  const [realtimeStatus, setRealtimeStatus] = useState('disconnected'); // 'disconnected' | 'connecting' | 'connected' | 'error'
+  
+  const unsubscribeRef = useRef(null);
+  const hasInitialSyncedRef = useRef(false);
 
   // Full sync function
   const handleFullSync = useCallback(async () => {
@@ -51,6 +49,51 @@ export function SyncProvider({ children }) {
       setIsSyncing(false);
     }
   }, [user?.id, isSyncing, syncEnabled, toast]);
+
+// Set up real-time subscription and initial sync when user signs in
+useEffect(() => {
+    console.log('SyncContext useEffect running:', {
+      isAuthenticated,
+      userId: user?.id,
+      syncEnabled,
+      realtimeAvailable: isRealtimeAvailable()
+    });
+  
+    if (isAuthenticated && user?.id && syncEnabled) {
+      // Perform initial sync only once
+      if (!hasInitialSyncedRef.current) {
+        hasInitialSyncedRef.current = true;
+        handleFullSync();
+      }
+  
+      // Set up real-time subscription
+      if (isRealtimeAvailable()) {
+        console.log('Setting up real-time subscriptions...');
+        unsubscribeRef.current = subscribeToChanges(user.id, (status) => {
+          console.log('Real-time status changed:', status);
+          setRealtimeStatus(status);
+        });
+      } else {
+        console.log('Real-time NOT available - check supabase config');
+      }
+    } else {
+      console.log('Skipping real-time setup - conditions not met');
+      // Clean up on sign out
+      hasInitialSyncedRef.current = false;
+      if (unsubscribeRef.current) {
+        unsubscribeRef.current();
+        unsubscribeRef.current = null;
+      }
+      setRealtimeStatus('disconnected');
+    }
+  
+    return () => {
+      if (unsubscribeRef.current) {
+        unsubscribeRef.current();
+        unsubscribeRef.current = null;
+      }
+    };
+  }, [isAuthenticated, user?.id, syncEnabled]);
 
   // Sync a single article (for real-time updates)
   const syncArticle = useCallback(async (article) => {
@@ -132,6 +175,7 @@ export function SyncProvider({ children }) {
     isSyncing,
     lastSynced,
     syncEnabled,
+    realtimeStatus,
     handleFullSync,
     syncArticle,
     syncArticleDeletion,

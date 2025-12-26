@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useState } from 'react';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
+import { sendSessionToExtension, clearExtensionSession } from '../utils/extensionBridge';
 
 const AuthContext = createContext(null);
 
@@ -19,6 +20,11 @@ export function AuthProvider({ children }) {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setUser(session?.user ?? null);
       setIsLoading(false);
+      
+      // Send session to extension
+      if (session) {
+        sendSessionToExtension(session);
+      }
     });
 
     // Listen for auth changes
@@ -28,13 +34,17 @@ export function AuthProvider({ children }) {
         
         if (event === 'SIGNED_IN') {
           console.log('User signed in:', session?.user?.email);
+          sendSessionToExtension(session);
         } else if (event === 'SIGNED_OUT') {
           console.log('User signed out');
           setIsRecoveryMode(false);
+          clearExtensionSession();
         } else if (event === 'PASSWORD_RECOVERY') {
-          // User clicked password reset link
           console.log('Password recovery mode');
           setIsRecoveryMode(true);
+        } else if (event === 'TOKEN_REFRESHED') {
+          console.log('Token refreshed');
+          sendSessionToExtension(session);
         }
       }
     );
@@ -67,6 +77,10 @@ export function AuthProvider({ children }) {
       password,
     });
 
+    if (data?.session) {
+      sendSessionToExtension(data.session);
+    }
+
     return { data, error };
   };
 
@@ -74,6 +88,7 @@ export function AuthProvider({ children }) {
   const signOut = async () => {
     if (!isConfigured) return;
 
+    clearExtensionSession();
     const { error } = await supabase.auth.signOut();
     if (error) {
       console.error('Sign out error:', error);
@@ -110,7 +125,7 @@ export function AuthProvider({ children }) {
     return { data, error };
   };
 
-  // Clear recovery mode (if user wants to cancel)
+  // Clear recovery mode
   const clearRecoveryMode = () => {
     setIsRecoveryMode(false);
   };

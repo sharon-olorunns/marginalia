@@ -9,3 +9,4 @@ export { default as Skeleton } from './Skeleton';
 export { default as Tooltip } from './Tooltip';
 export { ToastProvider, useToast } from './Toast';
 export { default as ConfirmDialog } from './ConfirmDialog';
+export { default as SyncIndicator } from './SyncIndicator';
